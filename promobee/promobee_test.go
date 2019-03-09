@@ -5,9 +5,11 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/cfunkhouser/egobee"
 )
 
-func TestAccumulatorServeThermostatList(t *testing.T) {
+func TestAccumulator_ServeThermostatList(t *testing.T) {
 	acc := &Accumulator{
 		thermostats: map[string]*thermostatMetrics{
 			"id1": &thermostatMetrics{},
@@ -36,6 +38,35 @@ func TestAccumulatorServeThermostatList(t *testing.T) {
 	want := "id1\nid2\nid3\n"
 	if got := rr.Body.String(); got != want {
 		t.Errorf("incorrect content; got %q, want %q", got, want)
+	}
+}
+
+func TestAccumulator_metricsForThermostat_doesNotExist(t *testing.T) {
+	testAccumulator := &Accumulator{
+		thermostats: make(map[string]*thermostatMetrics),
+	}
+	got := testAccumulator.metricsForThermostat(&egobee.Thermostat{Identifier: "foo"})
+	if got == nil {
+		t.Errorf("Accumulator.metricsForThermostat(...) returned nil; it should never do that.")
+	}
+	if inMap := testAccumulator.thermostats["foo"]; inMap != got {
+		t.Errorf("Accumulator.metricsForThermostat(...) returned a pointer that doesn't exist in the map somehow")
+	}
+}
+
+func TestAccumulator_metricsForThermostat_doesExist(t *testing.T) {
+	tm := &thermostatMetrics{}
+	testAccumulator := &Accumulator{
+		thermostats: map[string]*thermostatMetrics{
+			"foo": tm,
+		},
+	}
+	got := testAccumulator.metricsForThermostat(&egobee.Thermostat{Identifier: "foo"})
+	if got == nil {
+		t.Errorf("Accumulator.metricsForThermostat(...) returned nil; it should never do that.")
+	}
+	if got != tm {
+		t.Errorf("Accumulator.metricsForThermostat(...) returned a new *thermostatMetrics despite one being in the map")
 	}
 }
 

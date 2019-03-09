@@ -51,7 +51,7 @@ func (a *Accumulator) metricsForThermostat(thermostat *egobee.Thermostat) *therm
 	a.mu.RUnlock()
 
 	if !ok {
-		t := newThermostatMetrics(thermostat)
+		t = newThermostatMetrics(thermostat)
 		a.mu.Lock()
 		a.thermostats[thermostat.Identifier] = t
 		a.mu.Unlock()
@@ -70,10 +70,9 @@ func (a *Accumulator) poll() error {
 		// Not technically an error. Just inconvenient.
 		return nil
 	}
-	log.Printf("Got some thermostats:\n%+v", thermostats)
 	for _, thermostat := range thermostats {
 		if len(thermostat.RemoteSensors) < 1 {
-			log.Printf("Thermostat has no RemoteSensors.")
+			log.Printf("Thermostat has no sensors.")
 			continue
 		}
 		m := a.metricsForThermostat(thermostat)
@@ -161,7 +160,7 @@ func New(c *egobee.Client, o *Opts) *Accumulator {
 		thermostats: make(map[string]*thermostatMetrics),
 	}
 
-	go func(done <-chan bool) {
+	go func(a *Accumulator, done <-chan bool) {
 		ticker := time.NewTicker(o.pollInterval())
 		if err := a.poll(); err != nil {
 			log.Printf("error polling: %v", err)
@@ -176,7 +175,7 @@ func New(c *egobee.Client, o *Opts) *Accumulator {
 				}
 			}
 		}
-	}(done)
+	}(a, done)
 
 	return a
 }
