@@ -124,16 +124,19 @@ func (a *Accumulator) ServeThermostat(w http.ResponseWriter, req *http.Request) 
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(w, "Not Found")
+		return
 	}
 
 	registry := prometheus.NewRegistry()
 	if err := registry.Register(t.tempMetric); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Internal Server Error")
+		return
 	}
 	promhttp.HandlerFor(registry, promhttp.HandlerOpts{}).ServeHTTP(w, req)
 }
 
+// Stop polling the Ecobee API.
 func (a *Accumulator) Stop() {
 	a.done <- true
 }
@@ -141,6 +144,7 @@ func (a *Accumulator) Stop() {
 // The Ecobee API docs recommend polling no more frequently than 3 minutes.
 var defaultPollInterval = time.Minute * 3
 
+// Opts for the Accumulator.
 type Opts struct {
 	PollInterval time.Duration
 }
@@ -152,6 +156,7 @@ func (o *Opts) pollInterval() time.Duration {
 	return o.PollInterval
 }
 
+// New Accumulator.
 func New(c *egobee.Client, o *Opts) *Accumulator {
 	done := make(chan bool)
 	a := &Accumulator{
