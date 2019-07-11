@@ -144,7 +144,7 @@ func doRegister(c *cli.Context) error {
 
 	pac := &egobee.PinAuthenticationChallenge{}
 	if err := json.NewDecoder(resp.Body).Decode(pac); err != nil {
-		return cli.Exit(fmt.Errorf("Failed to read Pin Authentication: %v", err), 1)
+		return cli.Exit(fmt.Errorf("failed to read Pin Authentication: %v", err), 1)
 	}
 	resp.Body.Close()
 
