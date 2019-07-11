@@ -30,6 +30,15 @@ Once you have a code, go to [the Ecobee website](https://www.ecobee.com/), log
 in, navigate to _My Apps_ and click _Add Application._ When prompted, enter the
 code from above and click _Validate._
 
+Now, you can run `promobee`:
+
+```console
+$ promobee \
+    --app $ECOBEE_API_KEY \
+    --store /path/to/store
+2019/07/10 12:04:10 Starting on :8080
+```
+
 If anything happens to the token store, you will need to re-add the application.
 
 Once `promobee` is configured, you can point Prometheus at it with a
