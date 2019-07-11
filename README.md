@@ -36,10 +36,6 @@ Once `promobee` is configured, you can point Prometheus at it with a
 configuration like:
 
 ```yaml
-global:
-  scrape_interval:     15s
-  external_labels:
-    monitor: 'promobee-example'
 scrape_configs:
   - job_name: "promobee"
     metrics_path: /thermostat
