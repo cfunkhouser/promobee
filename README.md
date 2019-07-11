@@ -14,27 +14,39 @@ You will need an API key. Read the [Reference API
 App](https://www.ecobee.com/home/developer/api/sample-apps/reference-api-app.shtml)
 documentation from Ecobee to understand how to get one of these.
 
+### Creating a Token Store
+
 Once you have an API key, `promobee` requires you to add the application to your
-account, and that you have configured an `egobee` Token Store. Use the
-`ego-register` command from that package to initialize one:
+account, and that you have configured a Token Store. Use the `register`
+subcommand to create one:
 
 ```console
-$ ego-register \
-    --app $ECOBEE_API_KEY \
-    --store /path/to/store
+$ promobee \
+    --api_key $ECOBEE_API_KEY \
+    --store /path/to/store \
+  register
 Register with this PIN: abc9
 Press any key to continue when done.
 ```
 
 Once you have a code, go to [the Ecobee website](https://www.ecobee.com/), log
 in, navigate to _My Apps_ and click _Add Application._ When prompted, enter the
-code from above and click _Validate._
+code from above and click _Validate,_ and then click _Add Application_ when
+prompted.
+
+Once this is done, press any key in the terminal to finish registration. You will see the following output:
+
+```console
+Created persistent store at /path/to/store
+```
+
+### Runing the `promobee` exporter
 
 Now, you can run `promobee`:
 
 ```console
 $ promobee \
-    --app $ECOBEE_API_KEY \
+    --api_key $ECOBEE_API_KEY \
     --store /path/to/store
 2019/07/10 12:04:10 Starting on :8080
 ```
