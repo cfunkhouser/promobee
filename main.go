@@ -12,7 +12,7 @@ import (
 
 	"github.com/cfunkhouser/egobee"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"gopkg.in/urfave/cli.v2"
+	cli "github.com/urfave/cli/v2"
 
 	"github.com/cfunkhouser/promobee/promobee"
 )
