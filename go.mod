@@ -1,6 +1,6 @@
 module github.com/cfunkhouser/promobee
 
-go 1.12
+go 1.13
 
 require (
 	github.com/cfunkhouser/egobee v0.0.0-20190715124910-f1bea1c767a3
