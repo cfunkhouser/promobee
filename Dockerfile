@@ -1,8 +1,8 @@
 FROM golang:1.13 AS builder
 LABEL maintainer="Christian Funkhouser <christian@funkhouse.rs>"
 
-COPY . ./promobee/
-RUN cd /promobee && go build -mod=vendor -o /promobee .
+COPY . ./build/promobee/
+RUN cd ./build/promobee && go build -mod=vendor -o /promobee .
 
 FROM golang:1.13
 COPY --from=builder /promobee .
