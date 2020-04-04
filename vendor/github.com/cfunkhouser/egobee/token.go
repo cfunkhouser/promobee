@@ -16,6 +16,9 @@ var (
 	ErrInvalidDuration = errors.New("invalid duration")
 
 	hasUnitRx = regexp.MustCompile("[a-zA-Z]+")
+
+	// now overrideable for testing.
+	now = time.Now
 )
 
 // Scope of a token.
@@ -189,7 +192,7 @@ func (s *memoryStore) RefreshToken() string {
 func (s *memoryStore) ValidFor() time.Duration {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.validUntil.Sub(time.Now())
+	return s.validUntil.Sub(now())
 }
 
 func (s *memoryStore) Update(r *TokenRefreshResponse) error {
@@ -220,8 +223,8 @@ type persistentStoreData struct {
 
 // persistentStore implements tokenStore backed by disk.
 type persistentStore struct {
-	mu sync.RWMutex // protects the following members
-	f  *os.File     // File for store
+	mu   sync.RWMutex // protects the following members
+	path string       // path to store file
 	persistentStoreData
 }
 
@@ -240,7 +243,7 @@ func (s *persistentStore) RefreshToken() string {
 func (s *persistentStore) ValidFor() time.Duration {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.ValidUntilData.Sub(time.Now())
+	return s.ValidUntilData.Sub(now())
 }
 
 func (s *persistentStore) Update(r *TokenRefreshResponse) error {
@@ -252,25 +255,34 @@ func (s *persistentStore) Update(r *TokenRefreshResponse) error {
 	s.RefreshTokenData = r.RefreshToken
 	s.ValidUntilData = generateValidUntil(r)
 
+	f, err := os.OpenFile(s.path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, persistentStorePermissions)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
 	// Write token data to file to be accessed later
-	return json.NewEncoder(s.f).Encode(&s.persistentStoreData)
+	return json.NewEncoder(f).Encode(&s.persistentStoreData)
 }
 
 // load the data from local file into memory.
 func (s *persistentStore) load() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return json.NewDecoder(s.f).Decode(&s.persistentStoreData)
+
+	f, err := os.Open(s.path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	return json.NewDecoder(f).Decode(&s.persistentStoreData)
 }
 
 // NewPersistentTokenStore is a TokenStorer with persistence to disk
 func NewPersistentTokenStore(r *TokenRefreshResponse, path string) (TokenStorer, error) {
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, persistentStorePermissions)
-	if err != nil {
-		return nil, err
-	}
 	s := &persistentStore{
-		f: f,
+		path: path,
 	}
 	// update persistent storage tokenstore
 	if err := s.Update(r); err != nil {
@@ -282,12 +294,8 @@ func NewPersistentTokenStore(r *TokenRefreshResponse, path string) (TokenStorer,
 
 // NewPersistentTokenFromDisk returns a TokenStorer based on disk location
 func NewPersistentTokenFromDisk(path string) (TokenStorer, error) {
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, persistentStorePermissions)
-	if err != nil {
-		return nil, err
-	}
 	s := &persistentStore{
-		f: f,
+		path: path,
 	}
 	return s, s.load()
 }
@@ -295,5 +303,5 @@ func NewPersistentTokenFromDisk(path string) (TokenStorer, error) {
 // generateValidUntil returns the time the token expires with an added buffer
 func generateValidUntil(r *TokenRefreshResponse) time.Time {
 	// Subtract a few seconds to allow for network and processing delays.
-	return time.Now().Add(r.ExpiresIn.Duration - (15 * time.Second))
+	return now().Add(r.ExpiresIn.Duration - (15 * time.Second))
 }
