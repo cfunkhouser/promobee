@@ -2,7 +2,7 @@
 github.com/beorn7/perks/quantile
 # github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
-# github.com/cfunkhouser/egobee v0.0.0-20190715124910-f1bea1c767a3
+# github.com/cfunkhouser/egobee v0.0.0-20200405183020-a95a5bd477e7
 github.com/cfunkhouser/egobee
 # github.com/cpuguy83/go-md2man/v2 v2.0.0
 github.com/cpuguy83/go-md2man/v2/md2man

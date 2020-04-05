@@ -104,8 +104,7 @@ func (t *authorizingTransport) reauth() error {
 	if !r.ok() {
 		return r.err()
 	}
-	t.auth.Update(r.Resp)
-	return nil
+	return t.auth.Update(r.Resp)
 }
 
 func simpleRequestID() string {
