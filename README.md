@@ -40,6 +40,9 @@ Once this is done, press any key in the terminal to finish registration. You wil
 Created persistent store at /path/to/store
 ```
 
+If anything happens to the token store, you will need to re-add the application
+to your Ecobee account!
+
 ### Runing the `promobee` exporter
 
 Now, you can run `promobee`:
@@ -51,9 +54,32 @@ $ promobee \
 2019/07/10 12:04:10 Starting on :8080
 ```
 
-If anything happens to the token store, you will need to re-add the application.
+### Running from Docker
 
-Once `promobee` is configured, you can point Prometheus at it with a
+You can either build the container yourself, or use mine. I recommend creating
+a named Docker volume.
+
+```console
+$ docker volume create promobee-datastore
+$ docker run -d \
+    --name promobee \
+    -p 8080:8080 \
+    --mount source=promobee-datastore,target=/var/run/promobee \
+    cfunkhouser/promobee:latest \
+    -- $ECOBEE_API_KEY
+```
+
+This will fail, because the data store doesn't exist in the container. That's okay. Use `docker cp` to get the datastore you created above into the container.
+
+```console
+$ docker cp /path/to/store promobee:/var/run/promobee/promobee.store
+```
+
+Then `docker start` your container. It should now work fine.
+
+## Monitoring
+
+Once `promobee` is configured and running, you can point Prometheus at it with a
 configuration like:
 
 ```yaml
