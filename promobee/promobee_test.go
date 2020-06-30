@@ -45,12 +45,12 @@ func TestAccumulator_metricsForThermostat_doesNotExist(t *testing.T) {
 	testAccumulator := &Accumulator{
 		thermostats: make(map[string]*thermostatMetrics),
 	}
-	got := testAccumulator.metricsForThermostat(&egobee.Thermostat{Identifier: "foo"})
+	got := testAccumulator.metricsForThermostatIdentifier(&egobee.Thermostat{Identifier: "foo"})
 	if got == nil {
-		t.Errorf("Accumulator.metricsForThermostat(...) returned nil; it should never do that.")
+		t.Errorf("Accumulator.metricsForThermostatIdentifier(...) returned nil; it should never do that.")
 	}
 	if inMap := testAccumulator.thermostats["foo"]; inMap != got {
-		t.Errorf("Accumulator.metricsForThermostat(...) returned a pointer that doesn't exist in the map somehow")
+		t.Errorf("Accumulator.metricsForThermostatIdentifier(...) returned a pointer that doesn't exist in the map somehow")
 	}
 }
 
@@ -61,12 +61,12 @@ func TestAccumulator_metricsForThermostat_doesExist(t *testing.T) {
 			"foo": tm,
 		},
 	}
-	got := testAccumulator.metricsForThermostat(&egobee.Thermostat{Identifier: "foo"})
+	got := testAccumulator.metricsForThermostatIdentifier(&egobee.Thermostat{Identifier: "foo"})
 	if got == nil {
-		t.Errorf("Accumulator.metricsForThermostat(...) returned nil; it should never do that.")
+		t.Errorf("Accumulator.metricsForThermostatIdentifier(...) returned nil; it should never do that.")
 	}
 	if got != tm {
-		t.Errorf("Accumulator.metricsForThermostat(...) returned a new *thermostatMetrics despite one being in the map")
+		t.Errorf("Accumulator.metricsForThermostatIdentifier(...) returned a new *thermostatMetrics despite one being in the map")
 	}
 }
 

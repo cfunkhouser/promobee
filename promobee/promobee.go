@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -15,11 +16,13 @@ import (
 
 type thermostatMetrics struct {
 	tempMetric      *prometheus.GaugeVec
+	hvacModeMetric  *prometheus.GaugeVec
+	hvacInOperation *prometheus.GaugeVec
 	humidityMetric  *prometheus.GaugeVec
 	occupancyMetric *prometheus.GaugeVec
 }
 
-func newThermostatMetrics(t *egobee.Thermostat) *thermostatMetrics {
+func newThermostatMetrics() *thermostatMetrics {
 	return &thermostatMetrics{
 		tempMetric: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
@@ -27,6 +30,20 @@ func newThermostatMetrics(t *egobee.Thermostat) *thermostatMetrics {
 				Help: "Temperature in Fahrenheit as reported by an Ecobee sensor.",
 			},
 			[]string{"location"}),
+		hvacModeMetric: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "hvac",
+				Help: "HVAC mode as reported by an Ecobee thermostat.",
+			},
+			[]string{"mode"},
+		),
+		hvacInOperation: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "hvac_in_operation",
+				Help: "Running HVAC equipment is emitted with a '1' metric",
+			},
+			[]string{"equipment"},
+		),
 		humidityMetric: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "humidity",
@@ -60,15 +77,15 @@ type Accumulator struct {
 	thermostats map[string]*thermostatMetrics
 }
 
-func (a *Accumulator) metricsForThermostat(thermostat *egobee.Thermostat) *thermostatMetrics {
+func (a *Accumulator) metricsForThermostatIdentifier(identifier *string) *thermostatMetrics {
 	a.mu.RLock()
-	t, ok := a.thermostats[thermostat.Identifier]
+	t, ok := a.thermostats[*identifier]
 	a.mu.RUnlock()
 
 	if !ok {
-		t = newThermostatMetrics(thermostat)
+		t = newThermostatMetrics()
 		a.mu.Lock()
-		a.thermostats[thermostat.Identifier] = t
+		a.thermostats[*identifier] = t
 		a.mu.Unlock()
 	}
 
@@ -90,7 +107,10 @@ func (a *Accumulator) poll() error {
 			log.Printf("Thermostat has no sensors.")
 			continue
 		}
-		m := a.metricsForThermostat(thermostat)
+		m := a.metricsForThermostatIdentifier(&thermostat.Identifier)
+		m.hvacModeMetric.Reset()
+		m.hvacModeMetric.WithLabelValues(thermostat.Settings.HVACMode).Set(1)
+
 		for _, sensor := range thermostat.RemoteSensors {
 			h, err := sensor.Humidity()
 			// Only handle the successful case; if the sensor doesn't have humidity, that isn't fatal
@@ -118,6 +138,27 @@ func (a *Accumulator) poll() error {
 			m.tempMetric.With(prometheus.Labels{"location": sensor.Name}).Set(t)
 		}
 	}
+
+	statSummary, err := a.client.ThermostatSummary()
+	if err != nil {
+		return err
+	}
+
+	for _, status := range statSummary.StatusList {
+		d := strings.Split(status, ":")
+		if len(d) != 2 {
+			log.Printf("Thermostat status '%s' did not have two fields", status)
+			continue
+		}
+		m := a.metricsForThermostatIdentifier(&d[0])
+		m.hvacInOperation.Reset()
+		if d[1] != "" {
+			for _, unit := range strings.Split(d[1], ",") {
+				m.hvacInOperation.WithLabelValues(unit).Set(1)
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -159,7 +200,7 @@ func (a *Accumulator) ServeThermostat(w http.ResponseWriter, req *http.Request) 
 	}
 
 	registry := prometheus.NewRegistry()
-	metrics := []*prometheus.GaugeVec{t.tempMetric, t.occupancyMetric, t.humidityMetric}
+	metrics := []*prometheus.GaugeVec{t.tempMetric, t.occupancyMetric, t.humidityMetric, t.hvacInOperation, t.hvacModeMetric}
 	for _, m := range metrics {
 		if err := registry.Register(m); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
