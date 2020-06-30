@@ -313,6 +313,7 @@ type Program struct {
 const (
 	CapabilityTypeOccupancy   = "occupancy"
 	CapabilityTypeTemperature = "temperature"
+	CapabilityTypeHumidity    = "humidity"
 )
 
 // RemoteSensor represents a sensor connected to the thermostat.
@@ -340,6 +341,34 @@ func (s *RemoteSensor) Temperature() (float64, error) {
 		}
 	}
 	return 0.0, fmt.Errorf("remote sensor %v does not have a temperature capability", s.Name)
+}
+
+// Humidity gets the humidity for the sensor if it exists.
+func (s *RemoteSensor) Humidity() (int, error) {
+	if s != nil && len(s.Capability) > 0 {
+		for _, c := range s.Capability {
+			if c.Type == CapabilityTypeHumidity {
+				v, err := strconv.ParseInt(c.Value, 0, 0)
+				if err != nil {
+					return 0, err
+				}
+				return int(v), nil
+			}
+		}
+	}
+	return 0, fmt.Errorf("remote sensor %v does not have a humidity capability", s.Name)
+}
+
+// Occupancy gets the occupancy status for the sensor, if it exists
+func (s *RemoteSensor) Occupancy() (bool, error) {
+	if s != nil && len(s.Capability) > 0 {
+		for _, c := range s.Capability {
+			if c.Type == CapabilityTypeOccupancy {
+				return c.Value == "true", nil
+			}
+		}
+	}
+	return false, fmt.Errorf("remote sensor %v does not have an occupancy capability", s.Name)
 }
 
 // RemoteSensorCapability represents the specific capability of a sensor

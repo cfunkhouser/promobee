@@ -14,6 +14,8 @@ github.com/cfunkhouser/egobee v0.0.0-20190715124910-f1bea1c767a3 h1:2vqFN9PTVpcv
 github.com/cfunkhouser/egobee v0.0.0-20190715124910-f1bea1c767a3/go.mod h1:ETiVGL4VBd36pkrSjIsA1isbWOPQB++7UNNcvazLQPI=
 github.com/cfunkhouser/egobee v0.0.0-20200405183020-a95a5bd477e7 h1:5dyzerDaK0H4mWanHD5H33JAmBTkZQ5M/TgjLT/pH+8=
 github.com/cfunkhouser/egobee v0.0.0-20200405183020-a95a5bd477e7/go.mod h1:ETiVGL4VBd36pkrSjIsA1isbWOPQB++7UNNcvazLQPI=
+github.com/cfunkhouser/egobee v0.0.0-20200629233434-93c503707917 h1:8UUwXKMCtecrcIZuZTJpgL0eujoRp8RkGvQP3CCmIso=
+github.com/cfunkhouser/egobee v0.0.0-20200629233434-93c503707917/go.mod h1:ETiVGL4VBd36pkrSjIsA1isbWOPQB++7UNNcvazLQPI=
 github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d h1:U+s90UTSYgptZMwQh2aRr3LuazLJIa+Pg3Kc1ylSYVY=
 github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d/go.mod h1:maD7wRr/U5Z6m/iR4s+kqSMx2CaBsrgA7czyZG/E6dU=
 github.com/cpuguy83/go-md2man/v2 v2.0.0 h1:EoUDS0afbrsXAZ9YQ9jdu/mZ2sXgT1/2yyNng4PGlyM=

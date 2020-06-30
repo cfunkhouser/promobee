@@ -85,6 +85,7 @@ func validateSelectionResponse(res *http.Response) error {
 func (c *Client) ThermostatSummary() (*ThermostatSummary, error) {
 	req, err := assembleSelectionRequest(c.api.URL(thermostatSummaryURL), &Selection{
 		SelectionType: SelectionTypeRegistered,
+		IncludeEquipmentStatus: true,
 		IncludeAlerts: true,
 	})
 	if err != nil {

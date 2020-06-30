@@ -14,7 +14,9 @@ import (
 )
 
 type thermostatMetrics struct {
-	tempMetric *prometheus.GaugeVec
+	tempMetric      *prometheus.GaugeVec
+	humidityMetric  *prometheus.GaugeVec
+	occupancyMetric *prometheus.GaugeVec
 }
 
 func newThermostatMetrics(t *egobee.Thermostat) *thermostatMetrics {
@@ -23,6 +25,19 @@ func newThermostatMetrics(t *egobee.Thermostat) *thermostatMetrics {
 			prometheus.GaugeOpts{
 				Name: "temperature_fahrenheit",
 				Help: "Temperature in Fahrenheit as reported by an Ecobee sensor.",
+			},
+			[]string{"location"}),
+		humidityMetric: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "humidity",
+				Help: "Humidity as reported by an Ecobee sensor.",
+			},
+			[]string{"location"}),
+
+		occupancyMetric: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "occupancy",
+				Help: "Occupancy as reported by an Ecobee sensor.",
 			},
 			[]string{"location"}),
 	}
@@ -77,6 +92,22 @@ func (a *Accumulator) poll() error {
 		}
 		m := a.metricsForThermostat(thermostat)
 		for _, sensor := range thermostat.RemoteSensors {
+			h, err := sensor.Humidity()
+			// Only handle the successful case; if the sensor doesn't have humidity, that isn't fatal
+			if err == nil {
+				m.humidityMetric.With(prometheus.Labels{"location": sensor.Name}).Set(float64(h))
+			}
+
+			o, err := sensor.Occupancy()
+			// Only handle the successful case; if the sensor doesn't have occupancy, that isn't fatal
+			if err == nil {
+				v := 0.0
+				if o {
+					v = 1.0
+				}
+				m.occupancyMetric.With(prometheus.Labels{"location": sensor.Name}).Set(v)
+			}
+
 			t, err := sensor.Temperature()
 			if err != nil {
 				// We may still be able to get useful information from the payload,
@@ -128,11 +159,15 @@ func (a *Accumulator) ServeThermostat(w http.ResponseWriter, req *http.Request) 
 	}
 
 	registry := prometheus.NewRegistry()
-	if err := registry.Register(t.tempMetric); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Internal Server Error")
-		return
+	metrics := []*prometheus.GaugeVec{t.tempMetric, t.occupancyMetric, t.humidityMetric}
+	for _, m := range metrics {
+		if err := registry.Register(m); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "Internal Server Error")
+			return
+		}
 	}
+
 	promhttp.HandlerFor(registry, promhttp.HandlerOpts{}).ServeHTTP(w, req)
 }
 
