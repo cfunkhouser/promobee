@@ -17,6 +17,7 @@ import (
 type thermostatMetrics struct {
 	tempMetric      *prometheus.GaugeVec
 	hvacModeMetric  *prometheus.GaugeVec
+	holdTempMetric  *prometheus.GaugeVec
 	hvacInOperation *prometheus.GaugeVec
 	humidityMetric  *prometheus.GaugeVec
 	occupancyMetric *prometheus.GaugeVec
@@ -30,6 +31,13 @@ func newThermostatMetrics() *thermostatMetrics {
 				Help: "Temperature in Fahrenheit as reported by an Ecobee sensor.",
 			},
 			[]string{"location"}),
+		holdTempMetric: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "hold_temperature_fahrenheit",
+				Help: "Hold temperatures in Fahrenheit as reported by an Ecobee Thermostat",
+			},
+			[]string{"type"},
+		),
 		hvacModeMetric: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "hvac",
@@ -63,6 +71,7 @@ func newThermostatMetrics() *thermostatMetrics {
 var thermostatSelection = &egobee.Selection{
 	SelectionType:   egobee.SelectionTypeRegistered,
 	IncludeDevice:   true,
+	IncludeEvents:   true,
 	IncludeRuntime:  true,
 	IncludeSensors:  true,
 	IncludeSettings: true,
@@ -108,6 +117,22 @@ func (a *Accumulator) poll() error {
 			continue
 		}
 		m := a.metricsForThermostatIdentifier(&thermostat.Identifier)
+
+		m.holdTempMetric.Reset()
+
+		if thermostat.Settings.HVACMode != "off" {
+			for _, event := range thermostat.Events {
+				if event.Running && event.Type == "hold" {
+					if !event.IsCoolOff && thermostat.Settings.HVACMode != "heat" {
+						m.holdTempMetric.WithLabelValues("cool").Set(float64(event.CoolHoldTemp) / 10)
+					}
+					if !event.IsHeatOff && thermostat.Settings.HVACMode != "cool" {
+						m.holdTempMetric.WithLabelValues("heat").Set(float64(event.HeatHoldTemp) / 10)
+					}
+				}
+			}
+		}
+
 		m.hvacModeMetric.Reset()
 		m.hvacModeMetric.WithLabelValues(thermostat.Settings.HVACMode).Set(1)
 
@@ -200,7 +225,7 @@ func (a *Accumulator) ServeThermostat(w http.ResponseWriter, req *http.Request) 
 	}
 
 	registry := prometheus.NewRegistry()
-	metrics := []*prometheus.GaugeVec{t.tempMetric, t.occupancyMetric, t.humidityMetric, t.hvacInOperation, t.hvacModeMetric}
+	metrics := []*prometheus.GaugeVec{t.tempMetric, t.occupancyMetric, t.humidityMetric, t.holdTempMetric, t.hvacInOperation, t.hvacModeMetric}
 	for _, m := range metrics {
 		if err := registry.Register(m); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
